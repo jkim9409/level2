@@ -255,7 +255,7 @@ router.post("/post/:postId/like",authMiddleware ,async (req, res) => {
 
   const like = await Like.findOne({ where: { userId, postId }});  
 
-  if (like.length < 1){
+  if (!like){
     //게시글 좋아요를 해준다
     await Like.create({postId, userId});
     const result = {success:true,message:'좋아요를 눌렀습니다.'}
