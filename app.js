@@ -100,11 +100,9 @@ router.get("/post/:postId",authMiddleware,async (req,res) => {
   });
 
 
-
-  if (like.length < 1) {
-    const likeByMe = false
-  } else {
-    const likeByMe = true
+  let likeByMe = true;
+  if (!like.length) {
+    likeByMe = false
   }
   
   const likecount = await Like.findAll({
@@ -166,7 +164,7 @@ router.delete("/post/:postId",authMiddleware,async (req, res) => {
     }
   });
   if (likestodelete.length>0){
-    await likestodelete.destroy();
+    await Like.destroy({where:{postId}});
   }
   
 
