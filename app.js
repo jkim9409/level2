@@ -43,8 +43,13 @@ const upload = multer({
 //게시글 목록 가져오기
 router.get("/post", async (req, res) => {
   const post_list = await Post.findAll()
-  res.send({
+
+  const result = {
     post_list
+  }
+
+  res.send({
+    result
   });
   //post_list 에있는 image (ex,"1655184975418.jpg") 는 localhost:3000/images/1655184975418.jpg 에 들어가면 볼 수 있다.
 });
@@ -67,7 +72,9 @@ router.post("/post",authMiddleware,upload.single('image'),async (req, res) => {
   
   await Post.create({ userId, title, content, layout, nickname, image });
 
-  res.status(201).send({success: true});
+  const result = {success: true};
+
+  res.status(201).send({result});
 
 });
 
@@ -80,7 +87,8 @@ router.get("/post/:postId",authMiddleware,async (req,res) => {
   const post = await Post.findByPk(postId)
   
   if (post.length < 1) {
-    res.status(400).send({ errorMessage: '원하시는 게시물 정보가 없습니다.'})
+    const result = {error: '원하시는 게시물 정보가 없습니다.'}
+    res.status(400).send({ result })
     return
   }
 
@@ -105,8 +113,7 @@ router.get("/post/:postId",authMiddleware,async (req,res) => {
 
   const likeCount = likecount.length;
 
-
-  res.send({ 
+  const result = {
     postId,
     title: post.title,
     content: post.content,
@@ -114,7 +121,9 @@ router.get("/post/:postId",authMiddleware,async (req,res) => {
     image: post.image,
     likeByMe,
     likeCount,
-   });
+  };
+
+  res.send({result});
 
 });
 
@@ -123,32 +132,47 @@ router.delete("/post/:postId",authMiddleware,async (req, res) => {
   const { user } = res.locals;
   const { postId } = req.params;
   const post = await Post.findByPk(postId)
-  console.log(user)
+
   if (post.userId !== user.userId && !user.admin) {
-    res.status(400).send({success: false, error:'삭제할수 있는 권한이 없습니다.'})
+    const result = {success: false, error:'삭제할수 있는 권한이 없습니다.'}
+    res.status(400).send({result})
     return;
   }
 
   await post.destroy();
 
+  console.log("게시글 삭제완료")
   
   //이미지 지우기 만약 이미지가 있을 시에만)
+  if (post.image){
+    if (fs.existsSync("./uploads/" + post.image)) {
+      try {
+        fs.unlinkSync("./uploads/"+post.image);
+        console.log("이미지 삭제완료")
+      } catch(error){
+        console.log(error);
+      }
+  }
+  
 
-  // if (post.image.length > 0){
+  }
 
-
-  // }
+  
 
   //해당 라이크 지우기
-  const likestodelete = await Like.findall({
+  const likestodelete = await Like.findAll({
     where: {
       postId
     }
   });
-  await likestodelete.destroy();
+  if (likestodelete.length>0){
+    await likestodelete.destroy();
+  }
+  
 
 
-  res.send({success: true});
+  const result = {success: true}
+  res.send({result});
    
 
 })
@@ -161,7 +185,8 @@ router.post("/post/:postId",authMiddleware,upload.single('image'), async (req, r
   const post = await Post.findByPk(postId)
   console.log(post,user,post.userId,user.userId)
     if (post.userId !== user.userId && !user.admin) {
-      res.status(400).send({success:false, error:'수정할수 있는 권한이 없습니다.'})
+      const result = {success:false, error:'수정할수 있는 권한이 없습니다.'}
+      res.status(400).send({ result })
       return;
     }
 const {title, content, layout} = req.body;
@@ -190,13 +215,22 @@ if (title){
     where: postId
   });
 } else if (req.file){
-  // if (post.image){
-  //   // 기존 이미지 이름을 데이터 베이스에서 가져온다 post.image--------------------------------------------------------------------------------------
-  //   // 이미지를 로컬 uploads 에서 삭제해 준다 post.image 를 삭제 해 주면됨
-  //   console.log("이미지를 찾았고 삭제 합니다.")
+  if (post.image){
+    if (fs.existsSync("./uploads/" + post.image)) {
+      try {
+        fs.unlinkSync("./uploads/"+post.image);
+        console.log("이미지 삭제완료")
+      } catch(error){
+        console.log(error);
+      }
+  }
+    // 기존 이미지 이름을 데이터 베이스에서 가져온다 post.image--------------------------------------------------------------------------------------
+    // 이미지를 로컬 uploads 에서 삭제해 준다 post.image 를 삭제 해 주면
+    
+    console.log("이미지를 찾았고 삭제 합니다.")
 
 
-  // }
+  }
   
 
   // 새로 저장된 이미지 이름을 데이터 베이스에다가 업데이트 해준다.
@@ -206,8 +240,8 @@ if (title){
     where: postId
   });
 }
-
-res.send({success: true});
+const result = {success: true}
+res.send({result});
   
 
 })
@@ -224,12 +258,14 @@ router.post("/post/:postId/like",authMiddleware ,async (req, res) => {
   if (like.length < 1){
     //게시글 좋아요를 해준다
     await Like.create({postId, userId});
-    res.send({success:true,message:'좋아요를 눌렀습니다.'})
+    const result = {success:true,message:'좋아요를 눌렀습니다.'}
+    res.send({result})
     return;
   } else {
     //게시글 좋아요를 취소해준다.
     await like.destroy();
-    res.send({success:true,message:'좋아요를 취소했습니다.'})
+    const result = {success:true,message:'좋아요를 취소했습니다.'}
+    res.send({result})
     return;
 
   }
@@ -242,10 +278,9 @@ router.post("/register", async (req, res) => {
   const { nickname, email, password, passwordCheck } = req.body;
   const admin = false;
   if (password !== passwordCheck) {
-    res.status(400).send({
-      success: false,
-      error: '패스워드가 패스워드 확인란과 동일하지 않습니다.'
-    })
+
+    const result = {success: false, error: '패스워드가 패스워드 확인란과 동일하지 않습니다.'}
+    res.status(400).send({result})
     return;
   }
   console.log(req.body)
@@ -270,10 +305,9 @@ router.post("/register", async (req, res) => {
   }
 
   if (!isnickname(nickname) || !ispassword(password,nickname)){
-    res.status(400).send({
-      success: false,
-      error:'닉네임 또는 패스워드를 확인해 주세요.'
-    })
+
+    const result = {success: false, error:'닉네임 또는 패스워드를 확인해 주세요.'}
+    res.status(400).send({result})
 
     return ;
   }
@@ -284,15 +318,16 @@ router.post("/register", async (req, res) => {
     },
   });
   if (existUsers.length) {
+    const result = {error:'이미 가입된 이메일 또는 닉네임이 있습니다.'}
     res.status(400).send({
-      errorMessage:'이미 가입된 이메일 또는 닉네임이 있습니다.'
+      result
     })
     return;
   }
 
   await User.create({ email, nickname, password, admin });
-
-  res.status(201).send({success:true});
+  const result = {success:true}
+  res.status(201).send({result});
 
 
 });
@@ -302,14 +337,16 @@ router.post("/login",async (req,res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ where: { email, password }});
   if (!user) {
+    const result = {errorMessage: '이메일 또는 패스워드가 잘못됐습니다'}
     res.status(401).send({
-      errorMessage: '이메일 또는 패스워드가 잘못됐습니다'
+      result
     });
     return;
   }
 
   const token = jwt.sign({ userId: user.userId}, "my-secret-key");
-  res.send({ success:true,token })
+  const result = {success:true,token}
+  res.send({ result })
 });
 
 // router.get("/users/me", authMiddleware, async(req,res) => {

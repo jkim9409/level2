@@ -23,8 +23,10 @@ module.exports = (req,res,next) => {
 
 
     } catch (error) {
+        
+        result = {error: '로그인 후 사용하세요'}
         res.status(401).send({
-            errporMessage: '로그인 후 사용하세요'
+            result
         });
         return;
     }
