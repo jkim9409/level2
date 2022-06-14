@@ -49,10 +49,9 @@ router.post("/post",authMiddleware,upload.single('image'),async (req, res) => {
   console.log(req.file)
   console.log('!!!!!!!!!!!!!!!!!!!!!!!')
   if (req.file){
-    const { image } = req.file.path
-    console.log(req.file.path)
+    image = req.file.filename
   } else {
-    const { image } = ""
+    image = ""
   }
   console.log(image)
   const { user } = res.locals;
