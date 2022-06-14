@@ -10,9 +10,9 @@ const app = express();
 const router = express.Router();
 const fs = require('fs')
 app.use(cors());
-app.use(express.static('assets'))
 app.use(express.json());
 app.use("/api", express.urlencoded({ extended: false }), router);
+app.use(express.static('assets'))
 app.use('/images', express.static('uploads'))
 
 
@@ -86,7 +86,7 @@ router.get("/post/:postId",authMiddleware,async (req,res) => {
   const { postId } = req.params;
   const post = await Post.findByPk(postId)
   
-  if (post.length < 1) {
+  if (!post) {
     const result = {error: '원하시는 게시물 정보가 없습니다.'}
     res.status(400).send({ result })
     return
@@ -189,9 +189,7 @@ router.post("/post/:postId",authMiddleware,upload.single('image'), async (req, r
     }
 const {title, content, layout} = req.body;
 
-if (req.file){
-  image = req.file.filename
-}
+let image = ""
 
 if (title){
   post.update({
@@ -199,20 +197,24 @@ if (title){
   },{
     where: postId
   });
-} else if (content){
+}
+if (content){
   post.update({
     content
   },{
     where: postId
   });
 
-} else if (layout){
+}
+if (layout){
   post.update({
     layout
   },{
     where: postId
   });
-} else if (req.file){
+} 
+if (req.file){
+  image = req.file.filename
   if (post.image){
     if (fs.existsSync("./uploads/" + post.image)) {
       try {
@@ -221,19 +223,18 @@ if (title){
       } catch(error){
         console.log(error);
       }
+    
   }
     // 기존 이미지 이름을 데이터 베이스에서 가져온다 post.image--------------------------------------------------------------------------------------
     // 이미지를 로컬 uploads 에서 삭제해 준다 post.image 를 삭제 해 주면
     
-    console.log("이미지를 찾았고 삭제 합니다.")
+    console.log("새로운 이미지를 업로드 합니다.")
 
 
   }
-  
-
   // 새로 저장된 이미지 이름을 데이터 베이스에다가 업데이트 해준다.
   post.update({
-    image : req.file.filename
+    image
   },{
     where: postId
   });

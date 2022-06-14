@@ -7,8 +7,9 @@ module.exports = (req,res,next) => {
     console.log("여기를 지나쳤습니다.",tokenValue)
 
     if (tokenType !== 'Bearer') {
+        const result = {error: '로그인 후 사용하세요'}
         res.status(401).send({
-            errporMessage: '로그인 후 사용하세요'
+            result
         });
         return;
     }
